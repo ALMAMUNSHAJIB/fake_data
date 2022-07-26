@@ -1,99 +1,98 @@
-const faker = require('faker');
 const User = require('../model/user');
-const mongoose = require('mongoose');
-exports.getAllUserController = async (req, res, next) => {
-    try {
-        const user = await User.find({ status: "active" }).limit(1000)
-        res.status(200).json({ data: user });
-    } catch (error) {
-        console.log(error);
-    }
-};
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 
-exports.createUserController = async (req, res, next) => {
+
+exports.userSignup = async (req, res) => {
     try {
-        for (var i = 0; i < 4; i++) {
-            var data = new User({
-                firstname: faker.name.firstName(),
-                lastname: faker.name.lastName(),
-                phonenumber: faker.phone.phoneNumber(),
-                city: faker.address.city(),
-                state: faker.address.state(),
-                country: faker.address.country(),
+        const { name, gender, email, country, password, status, devices } = req.body;
+        const user = await User.findOne({ email: email });
+        if (user) {
+            res.status(500).json({
+                "message": "Email already exists!!"
             });
-            await data.save();
-
-        }
-        res.status(200).json({ message: 'Ok' })
-    } catch (error) {
-        console.log(error);
-    }
-};
-
-
-
-exports.getSinglaUserController = async (req, res, next) => {
-    try {
-        const user = req.params.userId;
-        const id = mongoose.Types.ObjectId.isValid(user);
-        if (!id) {
-            res.status(500).json({ message: " invalid id" })
         } else {
-            const data = await User.find({ _id: user });
-            if (data) {
-               return res.status(404).json({ message: "Data Not found!!" })
-               
-            } 
-            res.status(200).json({ data: data });
-            
+            if (name && gender && email && country && password && status && devices) {
+                const saltRounds = 10;
+                const slat = await bcrypt.genSalt(saltRounds);
+                const hashPassword = await bcrypt.hash(password, slat);
+
+                // console.log(hashPassword);
+                const newUser = new User({
+                    name, gender, email, country, password: hashPassword, status, devices
+                });
+                // console.log(newUser);
+                await newUser.save();
+                const saved_user = await User.findOne({ email: email });
+                //generate token 
+                const token = jwt.sign({ userId: saved_user._id },
+                    process.env.JWT_SECRET_KEY, {
+                    expiresIn: '1h'
+                });
+
+                res.status(201).json({
+                    data: newUser,
+                    token: token,
+                    "message": "User Insterd was success!"
+                })
+            } else {
+                res.status(500).json({
+                    "message": "All fields are required!!"
+                });
+            }
         }
 
     } catch (error) {
-        console.log(error)
-
-    }
-}
-
-
-
-exports.updateUserById = async (req, res, next) => {
-    try {
-        const { firstname, lastname, phonenumber, city, state, country } = req.body;
-        const userId = req.params.userId
-        const result = await User.findByIdAndUpdate({ _id: userId }, { firstname, lastname, phonenumber, city, state, country }, { new: true });
-        res.status(200).json({ data: result })
-    } catch (error) {
         console.log(error);
     }
-}
 
-
-
-exports.removeUserById = async (req, res, next) => {
-    try {
-        const userId = req.params.userId;
-        await User.findByIdAndDelete({ _id: userId });
-        res.status(200).json({ message: 'Delete User!' })
-
-    } catch (error) {
-        console.log(error);
-
-    }
-}
-
-
-
-
-exports.updateFiledController = async (req, res, next) => {
-    const updateUser = await User.aggregate([
-        {
-            $addFields: {
-                status: "active"
-            }
-        },
-        { $limit: 100 },
-    ])
-    res.status(200).json({ "message": "Updated!" })
 };
 
+
+exports.userSignin = async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        if (email && password) {
+            const user = await User.findOne({ email: email });
+            if (user !== null) {
+                const isMatch = await bcrypt.compare(password, user.password);
+                if ((user.email === email) && isMatch) {
+                    //gnarate token 
+                    const token = jwt.sign({ userId: user._id },
+                        process.env.JWT_SECRET_KEY, {
+                        expiresIn: '1h'
+                    });
+
+                    res.status(200).json({
+                        "message": "Login success!!",
+                        "token": token
+                    })
+                } else {
+                    res.status(400).json({
+                        "message": "email or password incorrect!!"
+                    })
+                }
+
+            } else {
+                res.status(404).json({
+                    "message": "User not found!!"
+                })
+
+            }
+        } else {
+            res.status(400).json({
+                "message": "All feild are required!!"
+            })
+        }
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+
+
+exports.userLogOut = async (req, res, next) => {
+    await User.findByIdAndRemove(req.user._id)
+    res.status(200).json({ message: 'ok' })
+}

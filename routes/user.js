@@ -1,13 +1,17 @@
 const router = require('express').Router();
-const {createUserController, getAllUserController, updateFiledController, getSinglaUserController, updateUserById, removeUserById} = require('../controller/user');
+const {userSignup, userSignin, userLogOut} = require('../controller/user');
+const { loginCheck } = require('../auth/auth');
 
 
-router.get('/get-user', getAllUserController);
-router.post('/create-user', createUserController);
-router.put('/update', updateFiledController);
-router.get('/singla-user/:userId', getSinglaUserController);
-router.post('/user-update/:userId', updateUserById);
-router.delete('/:userId', removeUserById)
+router.get(`/${process.env.NODE_ENV}/signup`, (req, res)=> {
+    res.send(`Api works from ${process.env.NODE_ENV}`)
+});
+router.post(`/${process.env.NODE_ENV}/signup`, userSignup);
+router.post(`/${process.env.NODE_ENV}/signin`, userSignin);
+router.get(`/${process.env.NODE_ENV}/logout`,loginCheck, userLogOut);
+
+
+
 
 
 module.exports = router;

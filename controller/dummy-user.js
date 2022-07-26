@@ -1,5 +1,5 @@
 const faker = require('faker');
-const User = require('../model/user');
+const User = require('../model/dummy-user');
 const mongoose = require('mongoose');
 exports.getAllUserController = async (req, res, next) => {
     try {

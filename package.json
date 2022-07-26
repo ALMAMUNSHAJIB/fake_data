@@ -4,17 +4,22 @@
   "description": "",
   "main": "lib/functions/src/index.js",
   "scripts": {
-   "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "start:dev": "NODE_ENV=dev nodemon index.js",
+    "start:prod": "NODE_ENV=prod nodemon index.js"
   },
   "keywords": [],
   "author": "",
   "type": "commonjs",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.0.1",
+    "dotenv": "^16.0.1",
     "ejs": "^3.1.8",
     "express": "^4.18.1",
     "faker": "^5.5.3",
     "hoax": "^0.2.11",
+    "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "mongodb": "^4.8.0",
     "mongoose": "^6.4.6"
