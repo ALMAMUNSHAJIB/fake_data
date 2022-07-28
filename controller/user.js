@@ -1,6 +1,7 @@
 const User = require('../model/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const ActiveUser = require('../model/active-user');
 
 
 
@@ -13,7 +14,7 @@ exports.userSignup = async (req, res) => {
                 "message": "Email already exists!!"
             });
         } else {
-            if (name && gender && email && country && password && status && devices) {
+            if (name && gender && email && country && password && status) {
                 const saltRounds = 10;
                 const slat = await bcrypt.genSalt(saltRounds);
                 const hashPassword = await bcrypt.hash(password, slat);
@@ -24,6 +25,14 @@ exports.userSignup = async (req, res) => {
                 });
                 // console.log(newUser);
                 await newUser.save();
+                const data = await ActiveUser.findById(newUser._id)
+                if(!data){
+                    
+                }
+             const newActiveUser =  new ActiveUser({
+                users: newUser._id
+             })
+             await newActiveUser.save();
                 const saved_user = await User.findOne({ email: email });
                 //generate token 
                 const token = jwt.sign({ userId: saved_user._id },
@@ -95,4 +104,18 @@ exports.userSignin = async (req, res, next) => {
 exports.userLogOut = async (req, res, next) => {
     await User.findByIdAndRemove(req.user._id)
     res.status(200).json({ message: 'ok' })
-}
+};
+
+
+exports.activeUser = async (req, res) => {
+    const { status } = req.body;
+    const newActiveUser = new ActiveUser({
+        status
+    });
+
+
+
+    await newActiveUser.save();
+    res.status(201).json({ data: newActiveUser })
+
+};

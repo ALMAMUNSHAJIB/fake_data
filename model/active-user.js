@@ -1,17 +1,21 @@
+const { date } = require('faker/lib/locales/az');
 const { Schema, model, Types } = require('mongoose');
 
 const activeUserSchema = Schema({
-    userId: {
+    users: {
         type: Types.ObjectId,
         ref: 'user'
     },
-    data: {
-        type: String,
-        required: ['Kindly enter your Report']
+    date: {
+        type: Date,
+        default: Date.now
     },
     created: {
         type: Date,
         default: Date.now
+    },
+    status: {
+        type: String
     }
 
 },
