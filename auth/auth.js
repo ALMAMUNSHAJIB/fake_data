@@ -13,7 +13,7 @@ exports.loginCheck = async (req, res, next) => {
             const { userId } = jwt.verify(token, process.env.JWT_SECRET_KEY);
             //Get user from token 
             req.user = await User.findById(userId).select('-password');
-            console.log(req.user);
+            //console.log(req.user);
             req.userId = userId
             next();
         } catch (err) {

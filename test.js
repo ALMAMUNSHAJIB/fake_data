@@ -50,3 +50,6 @@
 // });
 
 
+var d = new Date().setHours(0, 0, 0, 0);
+var first = d.getDate();
+console.log(first);
