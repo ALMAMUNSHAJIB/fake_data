@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const {userSignup, userSignin, userLogOut, activeUser, activeUserReportFindById} = require('../controller/user');
+const {userSignup, userSignin, userSignOut, activeUser, activeUserReportFindById} = require('../controller/user');
 const { loginCheck } = require('../auth/auth');
 
 
@@ -8,7 +8,7 @@ router.get(`/${process.env.NODE_ENV}/signup`, (req, res)=> {
 });
 router.post(`/${process.env.NODE_ENV}/signup`, userSignup);
 router.post(`/${process.env.NODE_ENV}/signin`, userSignin);
-router.get(`/${process.env.NODE_ENV}/logout`,loginCheck, userLogOut);
+router.post(`/${process.env.NODE_ENV}/logout`,loginCheck, userSignOut);
 
 router.post(`/${process.env.NODE_ENV}/active`, activeUser);
 router.post(`/${process.env.NODE_ENV}/report`,loginCheck, activeUserReportFindById)

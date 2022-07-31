@@ -59,5 +59,5 @@ const userSchema = Schema({
 
 
 
-const UserD = model('UserD', userSchema);
-module.exports = UserD;
+const User = model('User', userSchema);
+module.exports = User;

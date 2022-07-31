@@ -2,6 +2,7 @@ const User = require('../model/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const ActiveUser = require('../model/active-user');
+const { json } = require('express');
 
 
 
@@ -25,14 +26,21 @@ exports.userSignup = async (req, res) => {
                 });
                 // console.log(newUser);
                 await newUser.save();
-                const data = await ActiveUser.findById(newUser._id)
-                if(!data){
-                    
+                let today = new Date();
+                let getDate = today.toLocaleDateString();
+                const data = await ActiveUser.findOne({ created: getDate })
+                if (!data) {
+                    const newActiveUser = new ActiveUser({
+                        users: newUser._id,
+                        created: getDate
+                    })
+                    await newActiveUser.save();
+                } else {
+                    data.users.push(newUser._id);
+                    await data.save();
                 }
-             const newActiveUser =  new ActiveUser({
-                users: newUser._id
-             })
-             await newActiveUser.save();
+
+
                 const saved_user = await User.findOne({ email: email });
                 //generate token 
                 const token = jwt.sign({ userId: saved_user._id },
@@ -64,7 +72,7 @@ exports.userSignin = async (req, res, next) => {
         const { email, password } = req.body;
         if (email && password) {
             const user = await User.findOne({ email: email });
-            if (user !== null) {
+            if (user && user !== null) {
                 const isMatch = await bcrypt.compare(password, user.password);
                 if ((user.email === email) && isMatch) {
                     //gnarate token 
@@ -72,7 +80,24 @@ exports.userSignin = async (req, res, next) => {
                         process.env.JWT_SECRET_KEY, {
                         expiresIn: '1h'
                     });
-
+                    let today = new Date();
+                    let getDate = today.toLocaleDateString();
+                    const data = await ActiveUser.findOne({ created: getDate });
+                    // console.log(data);
+                    if (!data) {
+                        const newActiveUser = new ActiveUser({
+                            users: user._id,
+                            created: getDate
+                        })
+                        await newActiveUser.save();
+                    } else {
+                        // const dataObj = await ActiveUser.findOne({ created: getDate }, { users: { "$in": [user._id] } });
+                        const dataObj = await ActiveUser.findOne({ created: getDate, users: { $all: [user._id] } });
+                        if (!dataObj || dataObj === null) {
+                            data.users.push(user._id);
+                            await data.save();
+                        }
+                    }
                     res.status(200).json({
                         "message": "Login success!!",
                         "token": token
@@ -100,13 +125,6 @@ exports.userSignin = async (req, res, next) => {
 };
 
 
-
-exports.userLogOut = async (req, res, next) => {
-    await User.findByIdAndRemove(req.user._id)
-    res.status(200).json({ message: 'ok' })
-};
-
-
 exports.activeUser = async (req, res) => {
     const { status } = req.body;
     const newActiveUser = new ActiveUser({
@@ -118,76 +136,27 @@ exports.activeUser = async (req, res) => {
 };
 
 
-exports.activeUserReportFindById = async(req, res, next) => {
-    console.log(req.userId);
-    var today = new Date()  //.setHours(0, 0, 0, 0);
-    var first = today.getDate() - today.getDay();
-    var firstDayWeek = new Date(today.setDate(first));
-    var lastDayWeek = new Date(today.setDate(first + 6));
-    var firstDayMonth = new Date(today.setDate(1));
-    var lastDayMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-    lastDayWeek.setHours(23, 59, 59, 0);
-    lastDayMonth.setHours(23, 59, 59, 0);
-    today = new Date().setHours(0, 0, 0, 0);
+exports.activeUserReportFindById = async (req, res, next) => {
+    let today = new Date();
+    let getDate = today.toLocaleDateString();
+    const data = await ActiveUser.find({ created: getDate }).populate('users', 'name country devices -_id')
+    res.status(200).json({ data: data });
+};
 
-   const data = await ActiveUser.aggregate([{
-        $match: {
-           userId: req.userId
-        }
-    }, {
-        $group: {
-            "_id": "",
-            "today": {
-                $push: {
-                    $cond: {
-                        if: {
-                            $lt: ["$created", new Date(today)]
-                        },
-                        then: "$$ROOT",
-                        else: ''
-                    }
-                }
-            },
-            // "week": {
-            //     $push: {
-            //         $cond: [{
-            //             $and: [{
-            //                 $gte: ["$created", new Date(firstDayWeek)]
-            //             },
-            //             {
-            //                 $lte: ["$created", new Date(lastDayWeek)]
-            //             }
-            //             ]
-            //         },
-            //             "$$ROOT",
-            //             ''
-            //         ]
-            //     }
-            // },
-            // "month": {
-            //     $push: {
-            //         $cond: [{
-            //             $and: [{
-            //                 $gte: ["$created", new Date(firstDayMonth)]
-            //             },
-            //             {
-            //                 $lte: ["$created", new Date(lastDayMonth)]
-            //             }
-            //             ]
-            //         },
-            //             "$$ROOT",
-            //             ''
-            //         ]
-            //     }
-            // }
-        }
-    }])
-        // //If you want to filter in mongo query
-        // .forEach(function (data) {
-        //     data.today = data.today.filter(e => e != "")
-        //     data.week = data.week.filter(e => e != "")
-        //     print(data);
-        // })
 
-        res.status(200).json({data: data});
-}
+
+
+exports.userSignOut = async (req, res, next) => {
+    if (req.headers && req.headers.authorization) {
+        const token = req.headers.authorization.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ success: false, message: "Authorization fail" });
+        }
+
+        // const tokens = token;
+        // console.log(tokens);
+        // const newTokens = tokens.filter(t => t.token !== token);
+        // await User.findByIdAndUpdate(req.user._id, { token: newTokens });
+         res.status(200), json({ success: true, message: "Sign Out Successfully" });
+    }
+};
