@@ -50,6 +50,12 @@
 // });
 
 
-var d = new Date().setHours(0, 0, 0, 0);
-var first = d.getDate();
-console.log(first);
+
+var curr = new Date; 
+var first = curr.getDate() - curr.getDay(); 
+var last = first + 6; 
+var firstday = new Date(curr.setDate(first)).toLocaleString();
+var lastday = new Date(curr.setDate(last)).toLocaleString();
+
+console.log(firstday);
+console.log(lastday);

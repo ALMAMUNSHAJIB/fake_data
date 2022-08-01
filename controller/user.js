@@ -137,10 +137,38 @@ exports.activeUser = async (req, res) => {
 
 
 exports.activeUserReportFindById = async (req, res, next) => {
-    let today = new Date();
-    let getDate = today.toLocaleDateString();
-    const data = await ActiveUser.find({ created: getDate }).populate('users', 'name country devices -_id')
-    res.status(200).json({ data: data });
+    try {
+        let today = new Date();
+        let getDate = today.toLocaleDateString();
+
+        var curr = new Date;
+        var first = curr.getDate() - curr.getDay();
+        var last = first + 6;
+        var firstday = new Date(curr.setDate(first)).toLocaleString();
+        var lastday = new Date(curr.setDate(last)).toLocaleString();
+
+        const data = await ActiveUser.find({ created: getDate }).populate('users', 'name country devices -_id')
+        const week = await ActiveUser.find({
+            $or: [
+                { $created: firstday }, { $created: lastday }
+            ]
+        }).populate('users', 'name country devices -_id');
+        // const week = await ActiveUser.aggregate([
+
+        //     {
+        //         $or: [
+        //             { $created: firstday }, { $created: lastday }
+        //         ]
+        //     }
+        // ])
+        res.status(200).json({ day: data, week: week });
+
+
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ error: error, message: 'something error server side!!' })
+    }
 };
 
 
@@ -157,6 +185,6 @@ exports.userSignOut = async (req, res, next) => {
         // console.log(tokens);
         // const newTokens = tokens.filter(t => t.token !== token);
         // await User.findByIdAndUpdate(req.user._id, { token: newTokens });
-         res.status(200), json({ success: true, message: "Sign Out Successfully" });
+        res.status(200), json({ success: true, message: "Sign Out Successfully" });
     }
 };
